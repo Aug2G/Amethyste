@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chasse aux Diamants</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+</head>
+<body>
+    <script>
+        // Configuration du jeu
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 0 }, debug: false }
+            },
+            scene: { preload, create, update }
+        };
+
+        let player, cursors, diamond, score = 0, scoreText, timeText, timeLeft = 60;
+        
+        // Création du jeu
+        const game = new Phaser.Game(config);
+
+        function preload() {
+            this.load.image('background', 'background.jpg'); // Image de la grotte
+            this.load.image('player', 'girl.png'); // Image de la fille avec une natte
+            this.load.image('diamond', 'diamond.png'); // Image du diamant
+        }
+
+        function create() {
+            // Ajout du fond de la grotte
+            this.add.image(400, 300, 'background').setDisplaySize(800, 600);
+
+            // Ajout du joueur
+            player = this.physics.add.sprite(400, 300, 'player').setScale(0.5);
+            player.setCollideWorldBounds(true);
+
+            // Ajout du diamant
+            diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.3);
+
+            // Collision entre le joueur et le diamant
+            this.physics.add.overlap(player, diamond, collectDiamond, null, this);
+
+            // Affichage du score
+            scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
+            timeText = this.add.text(650, 10, 'Temps: 60s', { fontSize: '20px', fill: '#fff' });
+
+            // Activation des touches du clavier
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // Compteur de temps
+            this.time.addEvent({ delay: 1000, callback: updateTime, callbackScope: this, loop: true });
+        }
+
+        function update() {
+            // Déplacements du joueur
+            if (cursors.left.isDown) player.setVelocityX(-200);
+            else if (cursors.right.isDown) player.setVelocityX(200);
+            else player.setVelocityX(0);
+
+            if (cursors.up.isDown) player.setVelocityY(-200);
+            else if (cursors.down.isDown) player.setVelocityY(200);
+            else player.setVelocityY(0);
+        }
+
+        function collectDiamond(player, diamond) {
+            score += 1;
+            scoreText.setText('Score: ' + score);
+            diamond.setPosition(randomX(), randomY());
+        }
+
+        function updateTime() {
+            timeLeft--;
+            timeText.setText('Temps: ' + timeLeft + 's');
+            if (timeLeft <= 0) {
+                this.scene.pause();
+                this.add.text(300, 250, 'FIN DU JEU', { fontSize: '40px', fill: '#fff' });
+            }
+        }
+
+        function randomX() { return Phaser.Math.Between(50, 750); }
+        function randomY() { return Phaser.Math.Between(50, 550); }
+    </script>
+</body>
+</html>
