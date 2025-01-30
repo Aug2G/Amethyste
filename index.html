@@ -36,11 +36,11 @@
             this.add.image(400, 300, 'background').setDisplaySize(800, 600);
 
             // Ajout du joueur
-            player = this.physics.add.sprite(400, 300, 'player').setScale(0.005);
+            player = this.physics.add.sprite(400, 300, 'player').setScale(0.0005);
             player.setCollideWorldBounds(true);
 
             // Ajout du diamant
-            diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.003);
+            diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.0003);
 
             // Collision entre le joueur et le diamant
             this.physics.add.overlap(player, diamond, collectDiamond, null, this);
