@@ -20,7 +20,7 @@
             scene: { preload, create, update }
         };
 
-        let player, cursors, diamond, score = 0, scoreText, timeText, timeLeft = 60;
+        let player, cursors, diamond, bombs, score = 0, scoreText, timeText, timeLeft = 60;
 
         // Création du jeu
         const game = new Phaser.Game(config);
@@ -29,6 +29,7 @@
             this.load.image('background', 'background.jpg'); // Image de la grotte
             this.load.image('player', 'girl.png'); // Image de la fille avec une natte
             this.load.image('diamond', 'diamond.png'); // Image du diamant
+            this.load.image('bomb', 'bomb.png'); // Image de la bombe
         }
 
         function create() {
@@ -42,8 +43,17 @@
             // Ajout du diamant
             diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.3);
 
+            // Ajout des bombes (groupe)
+            bombs = this.physics.add.group();
+            for (let i = 0; i < 3; i++) { // Nombre de bombes
+                let bomb = bombs.create(randomX(), randomY(), 'bomb').setScale(0.3);
+            }
+
             // Collision entre le joueur et le diamant
             this.physics.add.overlap(player, diamond, collectDiamond, null, this);
+
+            // Collision entre le joueur et les bombes
+            this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
             // Affichage du score
             scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
@@ -77,6 +87,13 @@
             score += 1;
             scoreText.setText('Score: ' + score);
             diamond.setPosition(randomX(), randomY());
+        }
+
+        function hitBomb(player, bomb) {
+            score -= 1; // Perte de point
+            if (score < 0) score = 0; // Le score ne descend pas sous 0
+            scoreText.setText('Score: ' + score);
+            bomb.setPosition(randomX(), randomY()); // Déplacer la bombe
         }
 
         function updateTime() {
