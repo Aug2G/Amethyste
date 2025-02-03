@@ -2,22 +2,22 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
     <title>Chasse aux Diamants</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <style>
         body {
             margin: 0;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             background: black;
-            overflow: hidden;
-            touch-action: none;
         }
         #game-container {
             position: relative;
+            width: 100vw;
+            height: 100vh;
         }
         .touch-controls {
             position: absolute;
@@ -54,10 +54,13 @@
 <body>
     <div id="game-container">
         <script>
+            let gameWidth = window.innerWidth;
+            let gameHeight = window.innerHeight;
+
             const config = {
                 type: Phaser.AUTO,
-                width: window.innerWidth,
-                height: window.innerHeight,
+                width: gameWidth,
+                height: gameHeight,
                 physics: {
                     default: 'arcade',
                     arcade: { gravity: { y: 0 }, debug: false }
@@ -80,17 +83,17 @@
             }
 
             function create() {
-                this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'background')
-                    .setDisplaySize(window.innerWidth, window.innerHeight);
+                this.add.image(gameWidth / 2, gameHeight / 2, 'background')
+                    .setDisplaySize(gameWidth, gameHeight);
                 
-                player = this.physics.add.sprite(window.innerWidth / 2, window.innerHeight / 2, 'player').setScale(0.3);
+                player = this.physics.add.sprite(gameWidth / 2, gameHeight / 2, 'player').setScale(0.15);
                 player.setCollideWorldBounds(false);
 
-                diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.2);
+                diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.1);
 
                 bombs = this.physics.add.group();
                 for (let i = 0; i < 3; i++) {
-                    bombs.create(randomX(), randomY(), 'bomb').setScale(0.5);
+                    bombs.create(randomX(), randomY(), 'bomb').setScale(0.3);
                 }
 
                 screamSound = this.sound.add('scream');
@@ -98,8 +101,8 @@
                 this.physics.add.overlap(player, diamond, collectDiamond, null, this);
                 this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
-                scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
-                timeText = this.add.text(window.innerWidth - 120, 10, 'Temps: 60s', { fontSize: '20px', fill: '#fff' });
+                scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' });
+                timeText = this.add.text(gameWidth - 120, 10, 'Temps: 60s', { fontSize: '16px', fill: '#fff' });
 
                 cursors = this.input.keyboard.createCursorKeys();
 
@@ -111,17 +114,17 @@
             function update() {
                 let velocityX = 0, velocityY = 0;
 
-                if (cursors.left.isDown || moveLeft) velocityX = -200;
-                if (cursors.right.isDown || moveRight) velocityX = 200;
-                if (cursors.up.isDown || moveUp) velocityY = -200;
-                if (cursors.down.isDown || moveDown) velocityY = 200;
+                if (cursors.left.isDown || moveLeft) velocityX = -150;
+                if (cursors.right.isDown || moveRight) velocityX = 150;
+                if (cursors.up.isDown || moveUp) velocityY = -150;
+                if (cursors.down.isDown || moveDown) velocityY = 150;
 
                 player.setVelocity(velocityX, velocityY);
 
-                if (player.x < 0) player.x = window.innerWidth;
-                if (player.x > window.innerWidth) player.x = 0;
-                if (player.y < 0) player.y = window.innerHeight;
-                if (player.y > window.innerHeight) player.y = 0;
+                if (player.x < 0) player.x = gameWidth;
+                if (player.x > gameWidth) player.x = 0;
+                if (player.y < 0) player.y = gameHeight;
+                if (player.y > gameHeight) player.y = 0;
             }
 
             function collectDiamond(player, diamond) {
@@ -142,12 +145,12 @@
                 timeText.setText('Temps: ' + timeLeft + 's');
                 if (timeLeft <= 0) {
                     this.scene.pause();
-                    this.add.text(window.innerWidth / 2 - 60, window.innerHeight / 2, 'FIN DU JEU', { fontSize: '40px', fill: '#fff' });
+                    this.add.text(gameWidth / 2 - 60, gameHeight / 2, 'FIN DU JEU', { fontSize: '24px', fill: '#fff' });
                 }
             }
 
-            function randomX() { return Phaser.Math.Between(50, window.innerWidth - 50); }
-            function randomY() { return Phaser.Math.Between(50, window.innerHeight - 50); }
+            function randomX() { return Phaser.Math.Between(50, gameWidth - 50); }
+            function randomY() { return Phaser.Math.Between(50, gameHeight - 50); }
 
             function createTouchControls() {
                 const container = document.createElement('div');
@@ -182,6 +185,8 @@
 
             window.addEventListener('resize', () => {
                 game.scale.resize(window.innerWidth, window.innerHeight);
+                gameWidth = window.innerWidth;
+                gameHeight = window.innerHeight;
             });
         </script>
     </div>
