@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Chasse aux Diamants</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <style>
@@ -14,6 +14,7 @@
             height: 100vh;
             background: black;
             overflow: hidden;
+            touch-action: none;
         }
         #game-container {
             position: relative;
@@ -24,17 +25,22 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .row {
+            display: flex;
             justify-content: center;
-            width: 200px;
+            width: 100%;
         }
         .btn {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             margin: 5px;
             font-size: 24px;
             text-align: center;
-            line-height: 60px;
+            line-height: 50px;
             background: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             cursor: pointer;
@@ -50,8 +56,8 @@
         <script>
             const config = {
                 type: Phaser.AUTO,
-                width: 800,
-                height: 600,
+                width: window.innerWidth,
+                height: window.innerHeight,
                 physics: {
                     default: 'arcade',
                     arcade: { gravity: { y: 0 }, debug: false }
@@ -74,15 +80,17 @@
             }
 
             function create() {
-                this.add.image(400, 300, 'background').setDisplaySize(800, 600);
-                player = this.physics.add.sprite(400, 300, 'player').setScale(0.5);
+                this.add.image(window.innerWidth / 2, window.innerHeight / 2, 'background')
+                    .setDisplaySize(window.innerWidth, window.innerHeight);
+                
+                player = this.physics.add.sprite(window.innerWidth / 2, window.innerHeight / 2, 'player').setScale(0.3);
                 player.setCollideWorldBounds(false);
 
-                diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.3);
+                diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.2);
 
                 bombs = this.physics.add.group();
                 for (let i = 0; i < 3; i++) {
-                    bombs.create(randomX(), randomY(), 'bomb').setScale(0.8);
+                    bombs.create(randomX(), randomY(), 'bomb').setScale(0.5);
                 }
 
                 screamSound = this.sound.add('scream');
@@ -91,13 +99,12 @@
                 this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
                 scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
-                timeText = this.add.text(650, 10, 'Temps: 60s', { fontSize: '20px', fill: '#fff' });
+                timeText = this.add.text(window.innerWidth - 120, 10, 'Temps: 60s', { fontSize: '20px', fill: '#fff' });
 
                 cursors = this.input.keyboard.createCursorKeys();
 
                 this.time.addEvent({ delay: 1000, callback: updateTime, callbackScope: this, loop: true });
 
-                // Ajouter les boutons tactiles
                 createTouchControls();
             }
 
@@ -111,10 +118,10 @@
 
                 player.setVelocity(velocityX, velocityY);
 
-                if (player.x < 0) player.x = 800;
-                if (player.x > 800) player.x = 0;
-                if (player.y < 0) player.y = 600;
-                if (player.y > 600) player.y = 0;
+                if (player.x < 0) player.x = window.innerWidth;
+                if (player.x > window.innerWidth) player.x = 0;
+                if (player.y < 0) player.y = window.innerHeight;
+                if (player.y > window.innerHeight) player.y = 0;
             }
 
             function collectDiamond(player, diamond) {
@@ -135,12 +142,12 @@
                 timeText.setText('Temps: ' + timeLeft + 's');
                 if (timeLeft <= 0) {
                     this.scene.pause();
-                    this.add.text(300, 250, 'FIN DU JEU', { fontSize: '40px', fill: '#fff' });
+                    this.add.text(window.innerWidth / 2 - 60, window.innerHeight / 2, 'FIN DU JEU', { fontSize: '40px', fill: '#fff' });
                 }
             }
 
-            function randomX() { return Phaser.Math.Between(50, 750); }
-            function randomY() { return Phaser.Math.Between(50, 550); }
+            function randomX() { return Phaser.Math.Between(50, window.innerWidth - 50); }
+            function randomY() { return Phaser.Math.Between(50, window.innerHeight - 50); }
 
             function createTouchControls() {
                 const container = document.createElement('div');
@@ -153,17 +160,29 @@
                     btn.textContent = text;
                     btn.addEventListener('touchstart', () => { callback(true); });
                     btn.addEventListener('touchend', () => { callback(false); });
-                    container.appendChild(btn);
                     return btn;
                 }
 
-                createButton('⬆', state => moveUp = state);
-                const leftRightContainer = document.createElement('div');
-                container.appendChild(leftRightContainer);
-                createButton('⬅', state => moveLeft = state);
-                createButton('➡', state => moveRight = state);
-                createButton('⬇', state => moveDown = state);
+                const row1 = document.createElement('div');
+                row1.classList.add('row');
+                row1.appendChild(createButton('⬆', state => moveUp = state));
+                container.appendChild(row1);
+
+                const row2 = document.createElement('div');
+                row2.classList.add('row');
+                row2.appendChild(createButton('⬅', state => moveLeft = state));
+                row2.appendChild(createButton('➡', state => moveRight = state));
+                container.appendChild(row2);
+
+                const row3 = document.createElement('div');
+                row3.classList.add('row');
+                row3.appendChild(createButton('⬇', state => moveDown = state));
+                container.appendChild(row3);
             }
+
+            window.addEventListener('resize', () => {
+                game.scale.resize(window.innerWidth, window.innerHeight);
+            });
         </script>
     </div>
 </body>
