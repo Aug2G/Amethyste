@@ -21,6 +21,7 @@
         };
 
         let player, cursors, diamond, bombs, score = 0, scoreText, timeText, timeLeft = 60;
+        let screamSound; // Variable pour le son de cri
 
         // Création du jeu
         const game = new Phaser.Game(config);
@@ -30,6 +31,7 @@
             this.load.image('player', 'girl.png'); // Image de la fille avec une natte
             this.load.image('diamond', 'diamond.png'); // Image du diamant
             this.load.image('bomb', 'bomb.png'); // Image de la bombe
+            this.load.audio('scream', 'scream.mp3'); // Son de cri
         }
 
         function create() {
@@ -48,6 +50,9 @@
             for (let i = 0; i < 3; i++) { // Nombre de bombes
                 let bomb = bombs.create(randomX(), randomY(), 'bomb').setScale(0.8);
             }
+
+            // Chargement du son
+            screamSound = this.sound.add('scream');
 
             // Collision entre le joueur et le diamant
             this.physics.add.overlap(player, diamond, collectDiamond, null, this);
@@ -90,6 +95,7 @@
         }
 
         function hitBomb(player, bomb) {
+            screamSound.play(); // Joue le son de cri
             score -= 1; // Perte de point
             if (score < 0) score = 0; // Le score ne descend pas sous 0
             scoreText.setText('Score: ' + score);
