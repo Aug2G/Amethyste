@@ -2,193 +2,117 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chasse aux Diamants</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: black;
-        }
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        .touch-controls {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-        .row {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            gap: 10px; /* Espacement entre les touches */
-        }
-        .btn {
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            text-align: center;
-            line-height: 60px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            cursor: pointer;
-            user-select: none;
-        }
-        .btn:active {
-            background: rgba(255, 255, 255, 1);
-        }
-    </style>
 </head>
 <body>
-    <div id="game-container">
-        <script>
-            let gameWidth = window.innerWidth;
-            let gameHeight = window.innerHeight;
+    <script>
+        // Configuration du jeu
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: { gravity: { y: 0 }, debug: false }
+            },
+            scene: { preload, create, update }
+        };
 
-            const config = {
-                type: Phaser.AUTO,
-                width: gameWidth,
-                height: gameHeight,
-                physics: {
-                    default: 'arcade',
-                    arcade: { gravity: { y: 0 }, debug: false }
-                },
-                scene: { preload, create, update }
-            };
+        let player, cursors, diamond, bombs, score = 0, scoreText, timeText, timeLeft = 60;
+        let screamSound; // Variable pour le son de cri
 
-            let player, cursors, diamond, bombs, score = 0, scoreText, timeText, timeLeft = 60;
-            let screamSound;
-            let moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+        // Création du jeu
+        const game = new Phaser.Game(config);
 
-            const game = new Phaser.Game(config);
+        function preload() {
+            this.load.image('background', 'background.jpg'); // Image de la grotte
+            this.load.image('player', 'girl.png'); // Image de la fille avec une natte
+            this.load.image('diamond', 'diamond.png'); // Image du diamant
+            this.load.image('bomb', 'bomb.png'); // Image de la bombe
+            this.load.audio('scream', 'scream.mp3'); // Son de cri
+        }
 
-            function preload() {
-                this.load.image('background', 'background.jpg');
-                this.load.image('player', 'girl.png');
-                this.load.image('diamond', 'diamond.png');
-                this.load.image('bomb', 'bomb.png');
-                this.load.audio('scream', 'scream.mp3');
+        function create() {
+            // Ajout du fond de la grotte
+            this.add.image(400, 300, 'background').setDisplaySize(800, 600);
+
+            // Ajout du joueur
+            player = this.physics.add.sprite(400, 300, 'player').setScale(0.5);
+            player.setCollideWorldBounds(false); // Suppression des limites
+
+            // Ajout du diamant
+            diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.3);
+
+            // Ajout des bombes (groupe)
+            bombs = this.physics.add.group();
+            for (let i = 0; i < 3; i++) { // Nombre de bombes
+                let bomb = bombs.create(randomX(), randomY(), 'bomb').setScale(0.8);
             }
 
-            function create() {
-                this.add.image(gameWidth / 2, gameHeight / 2, 'background')
-                    .setDisplaySize(gameWidth, gameHeight);
-                
-                player = this.physics.add.sprite(gameWidth / 2, gameHeight / 2, 'player').setScale(0.15);
-                player.setCollideWorldBounds(false);
+            // Chargement du son
+            screamSound = this.sound.add('scream');
 
-                diamond = this.physics.add.sprite(randomX(), randomY(), 'diamond').setScale(0.1);
+            // Collision entre le joueur et le diamant
+            this.physics.add.overlap(player, diamond, collectDiamond, null, this);
 
-                bombs = this.physics.add.group();
-                for (let i = 0; i < 3; i++) {
-                    bombs.create(randomX(), randomY(), 'bomb').setScale(0.3);
-                }
+            // Collision entre le joueur et les bombes
+            this.physics.add.overlap(player, bombs, hitBomb, null, this);
 
-                screamSound = this.sound.add('scream');
+            // Affichage du score
+            scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '20px', fill: '#fff' });
+            timeText = this.add.text(650, 10, 'Temps: 60s', { fontSize: '20px', fill: '#fff' });
 
-                this.physics.add.overlap(player, diamond, collectDiamond, null, this);
-                this.physics.add.overlap(player, bombs, hitBomb, null, this);
+            // Activation des touches du clavier
+            cursors = this.input.keyboard.createCursorKeys();
 
-                scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' });
-                timeText = this.add.text(gameWidth - 120, 10, 'Temps: 60s', { fontSize: '16px', fill: '#fff' });
+            // Compteur de temps
+            this.time.addEvent({ delay: 1000, callback: updateTime, callbackScope: this, loop: true });
+        }
 
-                cursors = this.input.keyboard.createCursorKeys();
+        function update() {
+            // Déplacements du joueur
+            if (cursors.left.isDown) player.setVelocityX(-200);
+            else if (cursors.right.isDown) player.setVelocityX(200);
+            else player.setVelocityX(0);
 
-                this.time.addEvent({ delay: 1000, callback: updateTime, callbackScope: this, loop: true });
+            if (cursors.up.isDown) player.setVelocityY(-200);
+            else if (cursors.down.isDown) player.setVelocityY(200);
+            else player.setVelocityY(0);
 
-                createTouchControls();
+            // Wrap-around : si le joueur sort d'un côté, il réapparaît de l'autre
+            if (player.x < 0) player.x = 800;
+            if (player.x > 800) player.x = 0;
+            if (player.y < 0) player.y = 600;
+            if (player.y > 600) player.y = 0;
+        }
+
+        function collectDiamond(player, diamond) {
+            score += 1;
+            scoreText.setText('Score: ' + score);
+            diamond.setPosition(randomX(), randomY());
+        }
+
+        function hitBomb(player, bomb) {
+            screamSound.play(); // Joue le son de cri
+            score -= 1; // Perte de point
+            if (score < 0) score = 0; // Le score ne descend pas sous 0
+            scoreText.setText('Score: ' + score);
+            bomb.setPosition(randomX(), randomY()); // Déplacer la bombe
+        }
+
+        function updateTime() {
+            timeLeft--;
+            timeText.setText('Temps: ' + timeLeft + 's');
+            if (timeLeft <= 0) {
+                this.scene.pause();
+                this.add.text(300, 250, 'FIN DU JEU', { fontSize: '40px', fill: '#fff' });
             }
+        }
 
-            function update() {
-                let velocityX = 0, velocityY = 0;
-
-                if (cursors.left.isDown || moveLeft) velocityX = -150;
-                if (cursors.right.isDown || moveRight) velocityX = 150;
-                if (cursors.up.isDown || moveUp) velocityY = -150;
-                if (cursors.down.isDown || moveDown) velocityY = 150;
-
-                player.setVelocity(velocityX, velocityY);
-
-                if (player.x < 0) player.x = gameWidth;
-                if (player.x > gameWidth) player.x = 0;
-                if (player.y < 0) player.y = gameHeight;
-                if (player.y > gameHeight) player.y = 0;
-            }
-
-            function collectDiamond(player, diamond) {
-                score += 1;
-                scoreText.setText('Score: ' + score);
-                diamond.setPosition(randomX(), randomY());
-            }
-
-            function hitBomb(player, bomb) {
-                screamSound.play();
-                score = Math.max(0, score - 1);
-                scoreText.setText('Score: ' + score);
-                bomb.setPosition(randomX(), randomY());
-            }
-
-            function updateTime() {
-                timeLeft--;
-                timeText.setText('Temps: ' + timeLeft + 's');
-                if (timeLeft <= 0) {
-                    this.scene.pause();
-                    this.add.text(gameWidth / 2 - 60, gameHeight / 2, 'FIN DU JEU', { fontSize: '24px', fill: '#fff' });
-                }
-            }
-
-            function randomX() { return Phaser.Math.Between(50, gameWidth - 50); }
-            function randomY() { return Phaser.Math.Between(50, gameHeight - 50); }
-
-            function createTouchControls() {
-                const container = document.createElement('div');
-                container.classList.add('touch-controls');
-                document.getElementById('game-container').appendChild(container);
-
-                function createButton(text, callback) {
-                    const btn = document.createElement('div');
-                    btn.classList.add('btn');
-                    btn.textContent = text;
-                    btn.addEventListener('touchstart', () => { callback(true); });
-                    btn.addEventListener('touchend', () => { callback(false); });
-                    return btn;
-                }
-
-                const row1 = document.createElement('div');
-                row1.classList.add('row');
-                row1.appendChild(createButton('⬆', state => moveUp = state));
-                container.appendChild(row1);
-
-                const row2 = document.createElement('div');
-                row2.classList.add('row');
-                row2.appendChild(createButton('⬅', state => moveLeft = state));
-                row2.appendChild(createButton('➡', state => moveRight = state));
-                container.appendChild(row2);
-
-                const row3 = document.createElement('div');
-                row3.classList.add('row');
-                row3.appendChild(createButton('⬇', state => moveDown = state));
-                container.appendChild(row3);
-            }
-
-            window.addEventListener('resize', () => {
-                game.scale.resize(window.innerWidth, window.innerHeight);
-                gameWidth = window.innerWidth;
-                gameHeight = window.innerHeight;
-            });
-        </script>
-    </div>
+        function randomX() { return Phaser.Math.Between(50, 750); }
+        function randomY() { return Phaser.Math.Between(50, 550); }
+    </script>
 </body>
 </html>
